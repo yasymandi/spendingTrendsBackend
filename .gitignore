@@ -6,7 +6,7 @@ __pycache__/
 # Django
 *.sqlite3
 db.sqlite3
-/media
+django_project/media/
 /staticfiles
 
 # Node.js

@@ -45,7 +45,7 @@ categories = {"0": "Subscriptions", # dataset: https://huggingface.co/mgrella/au
     "37": "Misc.",
     "38": "Misc.",
     "39": "Misc.",
-    "40": "Category.PROFITS_PROFITS",
+    "40": "",
     "41": "Misc.",
     "42": "Shopping",
     "43": "Shopping",
@@ -99,17 +99,22 @@ def extract_transactions(text):
     transaction_pattern = re.compile(r'(\d{2}/\d{2})\s+([A-Za-z0-9\s\-\.,&/#*(-)]+?)\s+([0-9,]+\.[0-9]{2})')
     transactions = transaction_pattern.findall(text)
     transactions_data = []
+    categories_and_amounts = {}
 
     for transaction in transactions:
         date, description, amount = transaction
         amount = float(amount.replace('$', '').replace(',', '').strip())
+        description = categorize_description(description)
         transactions_data.append({
             'date': date,
-            'description': categorize_description(description),
+            'description': description,
             'amount': amount,
         })
+        if description not in categories_and_amounts:
+            categories_and_amounts[description] = 0
+        categories_and_amounts[description] += amount
     
-    return transactions_data
+    return transactions_data, categories_and_amounts
 
 def categorize_description(description):
     inputs = tokenizer(description, return_tensors="pt", truncation=True, padding=True, max_length=128)

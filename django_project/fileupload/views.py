@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from .models import UploadedFile
+from dataprocessing.models import ProcessedFile
 
 @csrf_exempt
 @api_view(['POST'])
@@ -38,11 +39,14 @@ def delete_uploaded_file(request):
     file_name = request.data.get('file').get('name')
     try:
         file_path = os.path.join(settings.MEDIA_ROOT, file_url.lstrip('/')) 
+        file_to_delete = UploadedFile.objects.filter(user=request.user, file__icontains=file_name)
+        processed_file_to_delete = ProcessedFile.objects.filter(file_path=file_path)
+        if processed_file_to_delete.exists():
+            processed_file_to_delete.delete()
+        file_to_delete.delete()
         if os.path.exists(file_path):
             os.remove(file_path)  # Delete the file from the file system
 
-        file_to_delete = UploadedFile.objects.filter(user=request.user, file__icontains=file_name)
-        file_to_delete.delete()
         return JsonResponse({"message": "File deleted successfully"}, status=204)  # No content
     except UploadedFile.DoesNotExist:
         return JsonResponse({"error": "File not found"}, status=404)

@@ -10,10 +10,11 @@ from .services import extract_pdf_data, extract_transactions
 @csrf_exempt
 @api_view(['POST'])
 def process_user_files(request):
-    uploaded_files = UploadedFile.objects.filter(user=request.user)
-    # parse through and collect all transaction data, transform into categories 
-    for file in uploaded_files:
-        file_path = os.path.join(settings.MEDIA_ROOT, file.file.url.lstrip('/')) 
+    selected_files = request.data.get('files', [])
+    all_processed_files = []
+    for file in selected_files:
+        uploaded_file = UploadedFile.objects.filter(user=request.user, file__icontains=file).first()
+        file_path = os.path.join(settings.MEDIA_ROOT, uploaded_file.file.url.lstrip('/')) 
         processed_file = ProcessedFile.objects.filter(file_path=file_path)
         if not processed_file.exists():
             # process the file into a corresponding ProcessedFile object
@@ -27,9 +28,12 @@ def process_user_files(request):
                                                           file_path=file_path,
                                                           transactions_data=transactions_data,
                                                           categories_and_amounts=categories_and_amounts)
+        else:
+            processed_file = processed_file.first()
+        all_processed_files.append(processed_file)
+        
     # collect all categories and amounts into one big dict
     all_categories_and_amounts = {}
-    all_processed_files = ProcessedFile.objects.filter(user=request.user)
     for file in all_processed_files:
         categories_dict = file.categories_and_amounts
         for category in categories_dict:
